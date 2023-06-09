@@ -48,18 +48,22 @@ async function run() {
     const classCollection = client.db("summerDb").collection("classes");
 
    
-    
-    app.post('/jwt', (req, res) => {
-      const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
-      res.send({ token })
-    })
+    //  jWt Api 
+
+
+    // app.post('/jwt', (req, res) => {
+    //   const user = req.body;
+    //   const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+    //   res.send({ token })
+    // })
 
     // user Api 
+
     app.get('/users', async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     })
+
     app.post('/users', async (req, res) => {
       const user = req.body;
       const query = { email: user.email }
@@ -71,6 +75,20 @@ async function run() {
       res.send(result)
     })
 
+
+    app.get('/users/admin/:email',async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      // if (req.decoded.email !== email) {
+      //   res.send({ admin: false })
+      // }
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      console.log(user); //null
+      const result = { admin: user?.role === 'admin' }
+      res.send(result);
+    })
+
     app.patch('/users/admin/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -80,6 +98,19 @@ async function run() {
         }
       }
       const result = await usersCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    })
+
+    app.get('/users/instructor/:email',async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      // if (req.decoded.email !== email) {
+      //   res.send({ admin: false })
+      // }
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      console.log(user);
+      const result = { instructor: user?.role === 'instructor' }
       res.send(result);
     })
 
@@ -98,21 +129,19 @@ async function run() {
 
     // class api 
     app.get('/classes', async (req, res) => {
-      const email = req.query.email;
-
-      if (!email) {
-        res.send([]);
-      }
-
-      const decodedEmail = req.decoded.email;
-      if (email !== decodedEmail) {
-        return res.status(403).send({ error: true, message: 'forbidden access' })
-      }
-
-      const query = { email: email };
-      const result = await classCollectionCollection.find(query).toArray();
+      // const email = req.query.email;
+      // if (!email) {
+      //   res.send([]);
+      // }
+      // const decodedEmail = req.decoded.email;
+      // if (email !== decodedEmail) {
+      //   return res.status(403).send({ error: true, message: 'forbidden access' })
+      // }
+      // const query = { email: email };
+      const result = await classCollection.find().toArray();
       res.send(result);
     })
+
     app.post('/classes', async (req, res) => {
       const newClass = req.body;
       const result = await classCollection.insertOne(newClass);
