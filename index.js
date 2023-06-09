@@ -43,6 +43,17 @@ app.post('/users', async (req, res) => {
   const result = await usersCollection.insertOne(user);
   res.send(result)
 })
+app.patch('users/admin/:id', async (req, res) => {
+  const id = req.params.id;
+  const query = { _id : new ObjectId(id)};
+  const updatedDoc = {
+    $set : {
+      role : 'admin'
+    }
+  }
+  const result = await usersCollection.updateOne(query, updatedDoc);
+  res.send(result);
+})
 
 
 // class api 
@@ -54,7 +65,6 @@ app.post ('classes', async(req, res)=> {
   const newClass = req.body;
   const result = await classCollection.insertOne(newClass);
   res.send(result);
-
 })
 
 
