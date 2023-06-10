@@ -47,7 +47,7 @@ async function run() {
     const usersCollection = client.db("summerDb").collection("users");
     const classCollection = client.db("summerDb").collection("classes");
 
-   
+
     //  jWt Api 
 
 
@@ -76,15 +76,10 @@ async function run() {
     })
 
 
-    app.get('/users/admin/:email',async (req, res) => {
+    app.get('/users/admin/admin/:email', async (req, res) => {
       const email = req.params.email;
-      console.log(email);
-      // if (req.decoded.email !== email) {
-      //   res.send({ admin: false })
-      // }
       const query = { email: email }
       const user = await usersCollection.findOne(query);
-      console.log(user); //null
       const result = { admin: user?.role === 'admin' }
       res.send(result);
     })
@@ -101,15 +96,10 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/users/instructor/:email',async (req, res) => {
+    app.get('/users/instructor/:email', async (req, res) => {
       const email = req.params.email;
-      console.log(email);
-      // if (req.decoded.email !== email) {
-      //   res.send({ admin: false })
-      // }
       const query = { email: email }
       const user = await usersCollection.findOne(query);
-      console.log(user);
       const result = { instructor: user?.role === 'instructor' }
       res.send(result);
     })
@@ -129,17 +119,33 @@ async function run() {
 
     // class api 
     app.get('/classes', async (req, res) => {
-      // const email = req.query.email;
-      // if (!email) {
-      //   res.send([]);
-      // }
-      // const decodedEmail = req.decoded.email;
-      // if (email !== decodedEmail) {
-      //   return res.status(403).send({ error: true, message: 'forbidden access' })
-      // }
-      // const query = { email: email };
       const result = await classCollection.find().toArray();
       res.send(result);
+    })
+
+
+    app.patch('/classes/approved/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedClass = {
+        $set: {
+          status: 'Approved',
+        }
+      }
+      const result = await classCollection.updateOne(filter, updatedClass)
+      res.send(result)
+    })
+
+    app.patch('/classes/deny/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedClass = {
+        $set: {
+          status: 'Approved',
+        }
+      }
+      const result = await classCollection.updateOne(filter, updatedClass)
+      res.send(result)
     })
 
     app.post('/classes', async (req, res) => {
