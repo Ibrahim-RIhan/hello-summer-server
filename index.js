@@ -46,6 +46,7 @@ async function run() {
     await client.connect();
     const usersCollection = client.db("summerDb").collection("users");
     const classCollection = client.db("summerDb").collection("classes");
+    const selectedClassCollection = client.db("summerDb").collection("selectedClasses");
 
 
     //  jWt Api 
@@ -151,6 +152,13 @@ async function run() {
     app.post('/classes', async (req, res) => {
       const newClass = req.body;
       const result = await classCollection.insertOne(newClass);
+      res.send(result);
+    })
+
+    // Selected Class API
+    app.post('/selectedClass', async (req, res) => {
+      const item = req.body;
+      const result = await selectedClassCollection.insertOne(item);
       res.send(result);
     })
 
