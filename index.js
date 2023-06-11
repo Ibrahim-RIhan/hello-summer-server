@@ -162,6 +162,12 @@ async function run() {
       res.send(result);
     })
 
+    app.get('/selectedClass/:email' , async (req, res) => {
+      const email = req.params.email
+      const filter = {email : email}
+      const result = await selectedClassCollection.find(filter).toArray()
+      res.send(result)
+    })
 
 
 
