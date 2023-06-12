@@ -2,7 +2,7 @@ const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const stripe = require('stripe')(process.env.PAYMENT_GATEWAY - SK)
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 require('dotenv').config()
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.aibqdpa.mongodb.net/?retryWrites=true&w=majority`;
@@ -12,22 +12,24 @@ app.use(cors())
 app.use(express.json());
 
 
-const verifyJWT = (req, res, next) => {
-  const authorization = req.headers.authorization;
-  if (!authorization) {
-    return res.status(401).send({ error: true, message: 'unauthorized access' });
-  }
-  // bearer token
-  const token = authorization.split(' ')[1];
+// Verify Jwt 
 
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).send({ error: true, message: 'unauthorized access' })
-    }
-    req.decoded = decoded;
-    next();
-  })
-}
+// const verifyJWT = (req, res, next) => {
+//   const authorization = req.headers.authorization;
+//   if (!authorization) {
+//     return res.status(401).send({ error: true, message: 'unauthorized access' });
+//   }
+//   // bearer token
+//   const token = authorization.split(' ')[1];
+
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+//     if (err) {
+//       return res.status(401).send({ error: true, message: 'unauthorized access' })
+//     }
+//     req.decoded = decoded;
+//     next();
+//   })
+// }
 
 
 
@@ -48,6 +50,7 @@ async function run() {
     const usersCollection = client.db("summerDb").collection("users");
     const classCollection = client.db("summerDb").collection("classes");
     const selectedClassCollection = client.db("summerDb").collection("selectedClasses");
+    const paymentCollection = client.db("summerDb").collection("payments");
 
 
     //  jWt Api 
@@ -59,12 +62,15 @@ async function run() {
     //   res.send({ token })
     // })
 
+
+
     // user Api 
 
     app.get('/users', async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     })
+
 
     app.post('/users', async (req, res) => {
       const user = req.body;
@@ -78,11 +84,11 @@ async function run() {
     })
 
 
-    app.get('/users/admin/admin/:email', async (req, res) => {
+    app.get('/users/admin/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email }
       const user = await usersCollection.findOne(query);
-      const result = { admin: user?.role === 'admin' }
+      const result = { admin: user?.role === 'Admin' }
       res.send(result);
     })
 
@@ -91,7 +97,7 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const updatedDoc = {
         $set: {
-          role: 'admin'
+          role: 'Admin'
         }
       }
       const result = await usersCollection.updateOne(query, updatedDoc);
@@ -102,7 +108,7 @@ async function run() {
       const email = req.params.email;
       const query = { email: email }
       const user = await usersCollection.findOne(query);
-      const result = { instructor: user?.role === 'instructor' }
+      const result = { instructor: user?.role === 'Instructor' }
       res.send(result);
     })
 
@@ -111,7 +117,7 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const updatedDoc = {
         $set: {
-          role: 'instructor'
+          role: 'Instructor'
         }
       }
       const result = await usersCollection.updateOne(query, updatedDoc);
@@ -137,13 +143,26 @@ async function run() {
       const result = await classCollection.updateOne(filter, updatedClass)
       res.send(result)
     })
+    app.patch('/classes/feedback/:id', async (req, res) => {
+      const { feedback } = req.body;
+      console.log(feedback);
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedClass = {
+        $set: {
+          feedback: feedback
+        }
+      }
+      const result = await classCollection.updateOne(filter, updatedClass)
+      res.send(result)
+    })
 
     app.patch('/classes/deny/:id', async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedClass = {
         $set: {
-          status: 'Approved',
+          status: 'Deny',
         }
       }
       const result = await classCollection.updateOne(filter, updatedClass)
@@ -155,6 +174,10 @@ async function run() {
       const result = await classCollection.insertOne(newClass);
       res.send(result);
     })
+    app.get('/classes/descending', async (req, res) => {
+      const result = await classCollection.find().sort({ enrolled: -1 }).limit(6).toArray();
+      res.send(result);
+    });
 
     // Selected Class API
     app.post('/selectedClass', async (req, res) => {
@@ -177,18 +200,27 @@ async function run() {
       res.send(result);
     })
 
-    app.post('/create-payment-intent', async (req, res)=>{
+    // Payment  api 
+    app.post('/create-payment-intent', async (req, res) => {
       const { price } = req.body;
-      const amount = price * 100;
+      const amount = parseInt(price * 100);
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
         currency: 'usd',
         payment_method_types: ['card']
-      })
+      });
+
       res.send({
         clientSecret: paymentIntent.client_secret
       })
-    });
+    })
+
+    // payment 
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const result = await paymentCollection.insertOne(payment);
+      res.send(result);
+    })
 
 
     // Send a ping to confirm a successful connection
